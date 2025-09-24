@@ -464,7 +464,7 @@ class Install extends AbstractMigration {
 			])
 			->addColumn('short_name', 'string', [
 				'default' => '',
-				'limit' => 3,
+				'limit' => 16,
 				'null' => false,
 			])
 			->create();
