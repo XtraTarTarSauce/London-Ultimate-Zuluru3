@@ -1,24 +1,18 @@
-FROM php:7.3-alpine
+FROM php:7.4-alpine
 
 #install all the system dependencies and enable PHP modules 
-RUN apk add --update \
+RUN apk add --no-cache \
     autoconf \
+    g++ \
+    make \
     git \
     icu-dev \
     libzip-dev \
-    php7-curl \
-    php7-intl \
-    php7-mbstring \
-    php7-mysqli \
-    php7-opcache \
-    php7-openssl \
-    php7-pdo_mysql \
-    php7-pdo_pgsql \
-    php7-pgsql \
-    php7-zip \
-    php7-zlib \
     postgresql-dev \
-  && docker-php-ext-configure pdo_mysql --with-pdo-mysql=mysqlnd \
+    oniguruma-dev   # 🔑 required for mbstring
+
+# Configure and install PHP extensions
+RUN docker-php-ext-configure pdo_mysql --with-pdo-mysql=mysqlnd \
   && docker-php-ext-install \
     intl \
     mbstring \
@@ -30,17 +24,22 @@ RUN apk add --update \
     opcache \
   && rm -rf /var/cache/apk/*
 
+  
 #install composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin/ --filename=composer
 
-COPY . /var/www/html
+#COPY . /var/www/html
 
 WORKDIR /var/www/html
 
 # install all PHP dependencies
-RUN composer install --no-interaction
+# clone Zuluru from GitHub (always latest main branch)
+# Remove the copied folder
+RUN rm -rf ./* \
+  && git clone https://github.com/XtraTarTarSauce/Zuluru3 . \
+  && composer install --no-interaction --no-dev --optimize-autoloader
 
-# Modify app.php file
+  # Modify app.php file
 RUN sed -i -e "s/'SECURITY_SALT'/'SECURITY_SALT', '5C2Yi3REBrXA5cN06dcH6VdAeJySm6RR'/" config/app.php && \
 	# Make sessionhandler configurable via environment
 	sed -i -e "s/'php',/env('SESSION_DEFAULTS', 'php'),/" config/app.php

@@ -17,7 +17,7 @@ class I18nSeed extends AbstractSeed {
 		$table = $this->table('i18n');
 
 		// Generate i18n table entries for all known locales
-		foreach (['en', 'ar', 'de', 'es', 'fr'] as $locale) {
+		foreach (['en'/*, 'ar', 'de', 'es', 'fr'*/] as $locale) {
 			I18n::setLocale($locale);
 
 			// Generate entries for all seed-based tables
