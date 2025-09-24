@@ -13,11 +13,12 @@ class CountriesSeed extends AbstractSeed {
 	public function data() {
 		return [
 			[
-				'name' => __d('seeds', 'Canada'),
-			],
+				'name' => __d('seeds', 'United Kingdom'),
+				//'name' => __d('seeds', 'Canada'),
+			]/*,
 			[
 				'name' => __d('seeds', 'United States'),
-			],
+			],*/
 		];
 	}
 
