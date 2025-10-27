@@ -1,202 +1,101 @@
-Table of Contents
-=================
+# London Ultimate Zuluru 3  
+*A containerised, open-source sports league management platform based on Zuluru 3.*
 
-* [Getting Started](#getting-started)
-   * [Install Composer](#install-composer)
-   * [Install Zuluru Code](#install-zuluru-code)
-   * [Zuluru Folder Permissions](#zuluru-folder-permissions)
-   * [Launch Zuluru](#launch-zuluru)
-   * [Docker Quick Start (Experimental!)](#docker-quick-start-experimental)
-   * [Configuration](#configuration)
-   * [Periodic Tasks](#periodic-tasks)
-   * [Troubleshooting](#troubleshooting)
-   * [Updates](#updates)
-   * [Updating from Zuluru 1](#updating-from-zuluru-1)
-   * [Version](#version)
-* [Development](#development)
-   * [Themes](#themes)
+This repository hosts **London Ultimate’s customized implementation of Zuluru 3**, a PHP (CakePHP-based) web application for managing sports leagues, teams, players, and schedules.
+
+The project includes a **Docker-based development and deployment environment** designed to make it simple for contributors to spin up and work on a fully functional Zuluru stack — including the web application, database, and web server — without manual setup.
+
+---
+
+## Project Overview
+
+- **Framework:** CakePHP (PHP 7.4)  
+- **Database:** MariaDB 12  
+- **Web Server:** NGINX reverse proxy  
+- **Runtime:** PHP-FPM on Alpine Linux  
+- **Configuration:** Multi-stage Docker build with secrets support and persistent storage  
+- **Purpose:** Provide a reliable, reproducible environment for contributors and deployments
+
+All infrastructure details — including service definitions, networking, and secrets management — are found in the included [`Dockerfile`](./Dockerfile) and [`docker-compose.yml`](./docker-compose.yml).
+
+---
 
 ## Getting Started
 
-### Install Composer
-
-```sh
-curl -sS https://getcomposer.org/installer | php
-sudo mv composer.phar /usr/local/bin/composer
+### 1. Clone the Repository
+```bash
+git clone https://github.com/XtraTarTarSauce/London-Ultimate-Zuluru3.git
+cd London-Ultimate-Zuluru3
 ```
 
-### Install Zuluru Code
+### 2. Create Secret Files
+The application uses Docker secrets for secure credential management.  
+Create the following files in the project root (each containing only the password value):
 
-Clone the repository and install the dependencies
-
-```sh
-git clone git@github.com:Zuluru/Zuluru3.git
-cd Zuluru3
-composer install
+```bash
+echo "supersecuredbpass" > db_password.txt
+echo "supersecurerootpass" > root_password.txt
+echo "supersecuresmtppass" > smtp_password.txt
 ```
 
-### Zuluru Folder Permissions
-
-This ensures that various folders are writable by the webserver
-
-```sh
-HTTPDUSER=`ps aux | grep -E '[a]pache|[h]ttpd|[_]www|[w]ww-data|[n]ginx' | grep -v root | head -1 | cut -d\  -f1`
-setfacl -R -m u:${HTTPDUSER}:rwx tmp logs upload
-setfacl -R -d -m u:${HTTPDUSER}:rwx tmp logs upload
+### 3. Build and Start the Containers
+```bash
+docker-compose build
+docker-compose up -d
 ```
 
-### Launch Zuluru
+### 4. Access the Application
+Open [http://localhost](http://localhost) in your browser.  
+The NGINX reverse proxy serves the web app, which communicates with the PHP-FPM and MariaDB containers internally.
 
-Configure your web server (Apache, NGINX, IIS, etc.) to point at Zuluru3/webroot
+---
 
-If you don't have a web server installed, you can run CakePHP's command line server:
+## Common Commands
 
-```sh
-bin/cake server
-```
+| Action | Command |
+|--------|----------|
+| View logs | `docker compose logs -f` |
+| Rebuild app after code changes | `docker compose build app && docker compose up -d` |
+| Run database migrations | `docker compose exec app bin/cake migrations migrate` |
+| Open a shell in the app container | `docker compose exec app bash` |
+| Stop and remove containers | `docker compose down` |
 
-Note that this should never be used for a production site!
+---
 
-### Docker Quick Start (Experimental!)
+## Contributing
 
-Run `docker-compose pull && docker-compose up -d` and open
-http://localhost/installer/install. The database credentials are `host: db`,
-`username: zuluru`, `password: userpassword`. This provides a quick and easy
-development environment.
+This setup is built for easy contribution:
 
-For a more advanced configuration template, read through [docker-compose.yml.advanced-example].
+- Code changes are reflected automatically inside the running containers.  
+- The environment matches production as closely as possible.  
+- Please avoid committing secrets or local configuration files.  
 
-### Configuration
+When contributing:
+1. Fork the repository.  
+2. Create a feature branch.  
+3. Test your changes locally using Docker.  
+4. Open a pull request for review.
 
-To run the install process, go to
+---
 
-    http://your.domain/installer/install
+## Environment Notes
 
-You will first need to have an empty database created and configured with a login. To date, Zuluru has only been tested on MySQL.
+- Default PHP runtime: **7.4-FPM (Alpine)**  
+- Supported databases: **MariaDB 12 (default)**; MySQL/PostgreSQL supported by CakePHP configuration  
+- Secrets are loaded from files (`db_password.txt`, `root_password.txt`, `smtp_password.txt`)  
+- Persistent data is stored using Docker volumes
 
-### Periodic Tasks
+For detailed service configurations, refer directly to:
+- [`Dockerfile`](./Dockerfile) — build instructions for the PHP-FPM application image  
+- [`docker-compose.yml`](./docker-compose.yml) — container orchestration, secrets, networks, and volumes  
 
-Zuluru has a number of processes that should happen on a daily (or even more often) basis, such as sending roster and attendance emails,
-opening and closing leagues, deactivating old player profiles, etc. These are handled through a command-line task.
+---
 
-You should set up the following command to be run regularly (every 10 minutes is recommended) by your `cron` (under Linux/UNIX).
+## License
 
-```sh
-cd /path/to/zuluru && env HTTP_HOST="yourdomain.com" bin/cake scheduler > /dev/null
-```
+This project is licensed under the same terms as the original [Zuluru 3 project](https://github.com/zuluru/zuluru3).  
+See the included `LICENSE` file for details.
 
-Note that the `/path/to/zuluru` will be the folder that contains things like `src`, `config` and `webroot`.
+---
 
-If you have a custom theme set up, your command line should reference it as well:
-
-```sh
-cd /path/to/zuluru && env DOMAIN_PLUGIN="Xyz" HTTP_HOST= ...
-```
-
-If you are running under Windows, something similar can be set up through the Task Scheduler.
-
-### Troubleshooting
-
-If you get error messages about invalid time zones, you may need to follow the instructions from http://dev.mysql.com/doc/refman/5.7/en/mysql-tzinfo-to-sql.html
-
-### Updates
-
-Ideally, you will never need to update any core Zuluru files. Assuming that this is the case, you should be able to simply update the source with:
-
-```sh
-git pull
-```
-
-If this gives you errors because you have made changes in files that there are also new changes in, this may work:
-
-```sh
-git stash
-git pull
-git stash pop
-```
-
-However, you should do this on a copy of your site instead of the live version, as any conflicts between your changes and those from the main repository
-will cause errors which will render your site inoperative!
-
-Regardless of which way you do the update, there may be database changes required.
-If the `pull` operation reports any new files under `/config/Migrations`, you will need to:
-
-```sh
-bin/cake migrations migrate
-bin/cake orm_cache clear
-```
-
-If you're not sure whether this is required, you can just run it; it's harmless if there is nothing to be done.
-It's good practice to always take a database backup before doing any of this, just in case!
-
-### Updating from Zuluru 1
-
-The number of people running Zuluru 1, outside of sites that I control and can do manual updates on, is quite small, so not worth spending the time building an automated upgrade process.
-
-If you need to do such an update, my recommendation would be for you to follow the install instructions above to get Zuluru 3 in a separate directory, and in a fresh database, in order to get the config files you need (`.env` and `app_local.php`).
-
-Then, edit the `.env` to point at your existing database, and change the SECURITY_SALT value to match your existing install (old one will be in `/config/core.php`).
-
-Then from the command line, in the new folder, run
-
-```sh
-bin/cake migrations migrate
-```
-
-to bring your existing database up-to-date with the latest changes.
-
-Do a backup of everything first, obviously!
-
-At this point, you should have a functional version of Z3 with all your existing data.
-
-### Version
-
-See `config/version.php` for the version of Zuluru currently installed.
-
-## Development
-
-### Themes
-
-CakePHP applications such as Zuluru generate their output through the
-use of "views". Each page in the system has a primary view, with a name
-similar to the page. For example, the view for /people/edit is located
-at `/templates/People/edit.php`. The page /leagues is a shortform for
-/leagues/index, with a view at `/templates/Leagues/index.php`.
-
-Many views also make use of elements, which are like mini-views that
-are needed in various places. Elements are all in `/templates/element`
-and folders below there.
-
-The content for emails is found under `/templates/email`, with most
-having both `html` and `text` versions.
-
-CakePHP provides a way for you to replace any of these views, without
-actually editing them. This is important for when you install a Zuluru
-update; it will keep you from losing your customizations. To use this,
-follow the [CakePHP Themes documentation](https://book.cakephp.org/3.0/en/views/themes.html).
-You don't need to update any `beforeRender` function as they describe,
-though; Zuluru takes care of that using your configuration. For example,
-if your league is called "XYZ", you might create an `Xyz` plugin, then
-edit `app_local.php` to set the name of your theme:
-
-```php
-  return [
-    'App' => [
-      'theme' => 'Xyz',
-    ],
-  ];
-```
-
-Now, copy and edit any view that you want to replace into your Xyz
-folder. For example, to replace the photo upload legal disclaimer text,
-you would copy `/templates/element/People/photo_legal.php` into
-`/plugins/Xyz/templates/element/People/photo_legal.php` and
-edit the resulting file. View files are PHP code, so you should have at
-least a little bit of PHP knowledge if you are making complex changes.
-
-Other common views to edit include the page header (the empty default is
-found in `/templates/element/layout/header.php`) or the main
-layout itself (`/templates/layout/default.php`). The layout is
-built to be fairly customizable without needing to resort to theming;
-for example you can add additional CSS files to include with an entry in
-`app_local.php`.
+*Maintained by the London Ultimate development team.*
