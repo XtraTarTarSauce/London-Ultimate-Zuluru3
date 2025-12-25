@@ -2,6 +2,7 @@ version: "3.7"
 services:
   db:
     image: mariadb:10.5
+    container_name: zuluru_db
     command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
@@ -14,12 +15,13 @@ services:
       - default
 
   app:
-    image: zuluru/zuluru:latest
+    #image: zuluru/zuluru:latest
+    container_name: zuluru
     build: .
     volumes:
       - app:/var/www/html
     ports:
-      - "80:80"
+      - "8080:80"
     depends_on:
       - db
     networks:
